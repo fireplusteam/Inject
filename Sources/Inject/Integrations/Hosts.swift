@@ -21,13 +21,12 @@ public typealias ViewHost = _InjectableViewHost
 /// `let myView = ViewControllerHost(TestViewController())`
 /// And within the parent view, you should add the view above.
 @available(iOS 13.0, *)
-@dynamicMemberLookup
-open class _InjectableViewControllerHost<Hosted: InjectViewControllerType>: InjectViewControllerType {
-    public private(set) var instance: Hosted?
-    let constructor: () -> Hosted
+open class _InjectableViewControllerHost: InjectViewControllerType {
+    public private(set) var instance: UIViewController?
+    let constructor: () -> UIViewController
     var cancellable: AnyCancellable?
     
-    public init(_ constructor: @autoclosure @escaping () -> Hosted) {
+    public init(_ constructor: @autoclosure @escaping () -> UIViewController) {
         instance = constructor()
         self.constructor = constructor
         
@@ -113,15 +112,6 @@ open class _InjectableViewControllerHost<Hosted: InjectViewControllerType>: Inje
         instance
     }
 #endif
-
-    public subscript<T>(dynamicMember keyPath: WritableKeyPath<Hosted, T?>) -> T? {
-        get { instance?[keyPath: keyPath] }
-        set { instance?[keyPath: keyPath] = newValue }
-    }
-    
-    public subscript<T>(dynamicMember keyPath: KeyPath<Hosted, T>) -> T? {
-        instance?[keyPath: keyPath]
-    }
 }
 
 /// Usage: to create an autoreloading view, wrap your
