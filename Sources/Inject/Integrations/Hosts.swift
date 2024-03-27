@@ -8,9 +8,10 @@ import AppKit
 public typealias InjectViewControllerType = NSViewController
 public typealias InjectViewType = NSView
 #endif
-
+import Combine
 #if DEBUG
 
+@available(iOS 13.0, *)
 public typealias ViewControllerHost = _InjectableViewControllerHost
 public typealias ViewHost = _InjectableViewHost
 
@@ -19,10 +20,12 @@ public typealias ViewHost = _InjectableViewHost
 /// If you are using a `TestViewController`, you would do the following:
 /// `let myView = ViewControllerHost(TestViewController())`
 /// And within the parent view, you should add the view above.
+@available(iOS 13.0, *)
 @dynamicMemberLookup
 open class _InjectableViewControllerHost<Hosted: InjectViewControllerType>: InjectViewControllerType {
-    public private(set) var instance: Hosted
+    public private(set) var instance: Hosted?
     let constructor: () -> Hosted
+    var cancellable: AnyCancellable?
     
     public init(_ constructor: @autoclosure @escaping () -> Hosted) {
         instance = constructor()
@@ -35,6 +38,16 @@ open class _InjectableViewControllerHost<Hosted: InjectViewControllerType>: Inje
         onInjection { instance in
             instance.resetHosted()
         }
+        
+        cancellable = NotificationCenter.default.publisher(for: Notification.Name("INJECTION_BEGIN_NOTIFICATION"))
+            .sink { [weak self] _ in
+#if canImport(UIKit)
+                self?.instance?.willMove(toParent: nil)
+#endif
+                self?.instance?.view.removeFromSuperview()
+                self?.instance?.removeFromParent()
+                self?.instance = nil
+            }
     }
     
     override open func loadView() {
@@ -44,17 +57,18 @@ open class _InjectableViewControllerHost<Hosted: InjectViewControllerType>: Inje
     private func resetHosted() {
         // remove old vc from child list
 #if canImport(UIKit)
-        instance.willMove(toParent: nil)
+        instance?.willMove(toParent: nil)
 #endif
-        instance.view.removeFromSuperview()
-        instance.removeFromParent()
+        instance?.view.removeFromSuperview()
+        instance?.removeFromParent()
         
-        instance = constructor()
+        self.instance = constructor()
         addAsChild()
     }
     
     private func addAsChild() {
         // add the real content as child
+        guard let instance else {return}
         addChild(instance)
         view.addSubview(instance.view)
 #if canImport(UIKit)
@@ -100,13 +114,13 @@ open class _InjectableViewControllerHost<Hosted: InjectViewControllerType>: Inje
     }
 #endif
 
-    public subscript<T>(dynamicMember keyPath: WritableKeyPath<Hosted, T>) -> T {
-        get { instance[keyPath: keyPath] }
-        set { instance[keyPath: keyPath] = newValue }
+    public subscript<T>(dynamicMember keyPath: WritableKeyPath<Hosted, T?>) -> T? {
+        get { instance?[keyPath: keyPath] }
+        set { instance?[keyPath: keyPath] = newValue }
     }
     
-    public subscript<T>(dynamicMember keyPath: KeyPath<Hosted, T>) -> T {
-        instance[keyPath: keyPath]
+    public subscript<T>(dynamicMember keyPath: KeyPath<Hosted, T>) -> T? {
+        instance?[keyPath: keyPath]
     }
 }
 
