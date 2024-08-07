@@ -22,7 +22,7 @@ public extension SwiftUI.View {
 }
 
 @available(iOS 13.0, *)
-@propertyWrapper @preconcurrency @MainActor
+@propertyWrapper @preconcurrency
 public struct ObserveInjection: DynamicProperty {
     @ObservedObject private var iO = InjectConfiguration.observer
     public nonisolated init() {}
@@ -43,7 +43,7 @@ public extension SwiftUI.View {
 }
 
 @available(iOS 13.0, *)
-@propertyWrapper @preconcurrency @MainActor
+@propertyWrapper @preconcurrency
 public struct ObserveInjection: DynamicProperty {
     public nonisolated init() {}
     // Use a computed property rather than directly storing the value to work around https://github.com/swiftlang/swift/issues/62003
